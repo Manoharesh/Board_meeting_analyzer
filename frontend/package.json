@@ -6,11 +6,11 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "^0.0.0",
+    "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "cross-env DANGEROUSLY_DISABLE_HOST_CHECK=true SKIP_PREFLIGHT_CHECK=true react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -33,5 +33,8 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:8000"
+  "proxy": "http://localhost:8000",
+  "devDependencies": {
+    "cross-env": "^10.1.0"
+  }
 }

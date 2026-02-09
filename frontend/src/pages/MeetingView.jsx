@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import '../styles/MeetingView.css';
 import LiveTranscript from '../components/LiveTranscript';
 import DecisionBoard from '../components/DecisionBoard';
@@ -24,7 +24,7 @@ const MeetingView = ({ meeting, onEndMeeting, isRecording }) => {
         mediaRecorderRef.current.stop();
       }
     };
-  }, [isRecording]);
+  }, [isRecording, startAudioCapture]);
 
   // Load meeting data periodically
   useEffect(() => {
@@ -33,9 +33,9 @@ const MeetingView = ({ meeting, onEndMeeting, isRecording }) => {
     }, 5000); // Update every 5 seconds
     
     return () => clearInterval(interval);
-  }, [meeting.id]);
+  }, [meeting.id, loadMeetingData]);
 
-  const startAudioCapture = async () => {
+  const startAudioCapture = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -74,7 +74,7 @@ const MeetingView = ({ meeting, onEndMeeting, isRecording }) => {
     } catch (error) {
       console.error('Error accessing microphone:', error);
     }
-  };
+  }, [isRecording]);
 
   const sendAudioChunk = async (audioBlob) => {
     try {
@@ -94,7 +94,7 @@ const MeetingView = ({ meeting, onEndMeeting, isRecording }) => {
     }
   };
 
-  const loadMeetingData = async () => {
+  const loadMeetingData = useCallback(async () => {
     try {
       // Load transcript
       const transcriptRes = await fetch(`/api/meeting/transcript/${meeting.id}`);
@@ -112,7 +112,7 @@ const MeetingView = ({ meeting, onEndMeeting, isRecording }) => {
     } catch (error) {
       console.error('Error loading meeting data:', error);
     }
-  };
+  }, [meeting.id]);
 
   const handleGenerateAnalysis = async () => {
     setLoading(true);

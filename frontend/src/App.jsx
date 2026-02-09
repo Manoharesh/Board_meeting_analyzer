@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import Dashboard from './pages/Dashboard';
 import MeetingView from './pages/MeetingView';
@@ -62,10 +62,9 @@ const App = () => {
 
   const handleEndMeeting = async () => {
     try {
-      const response = await fetch(`/api/meeting/end/${selectedMeeting.id}`, {
+      await fetch(`/api/meeting/end/${selectedMeeting.id}`, {
         method: 'POST'
       });
-      const data = await response.json();
       
       setIsRecording(false);
       setSelectedMeeting(null);
