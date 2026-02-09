@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import '../styles/TopicQuery.css';
+import api from '../services/api';
 
 const TopicQuery = ({ meetingId }) => {
   const [query, setQuery] = useState('');
@@ -10,7 +11,7 @@ const TopicQuery = ({ meetingId }) => {
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    
+
     if (!query.trim()) {
       setError('Please enter a question or topic');
       return;
@@ -21,21 +22,13 @@ const TopicQuery = ({ meetingId }) => {
     setResults(null);
 
     try {
-      const endpoint = queryType === 'semantic' ? `/api/query/semantic/${meetingId}` : `/api/query/topic/${meetingId}`;
-      const params = queryType === 'semantic' ? `query=${encodeURIComponent(query)}` : `topic=${encodeURIComponent(query)}`;
-      
-      const response = await fetch(`${endpoint}?${params}`, {
-        method: queryType === 'semantic' ? 'POST' : 'GET'
-      });
+      const data = queryType === 'semantic'
+        ? await api.semanticQuery(meetingId, query)
+        : await api.queryByTopic(meetingId, query);
 
-      if (response.ok) {
-        const data = await response.json();
-        setResults(data);
-      } else {
-        setError('Error performing search');
-      }
+      setResults(data);
     } catch (err) {
-      setError('Error performing search: ' + err.message);
+      setError(err.message || 'Error performing search');
     } finally {
       setLoading(false);
     }
@@ -45,7 +38,7 @@ const TopicQuery = ({ meetingId }) => {
     <div className="topic-query">
       <div className="query-section">
         <h3>Meeting Q&A</h3>
-        
+
         <div className="query-mode-toggle">
           <label>
             <input
@@ -75,12 +68,12 @@ const TopicQuery = ({ meetingId }) => {
             placeholder={queryType === 'semantic' ? 'Ask a question about the meeting...' : 'Search for a topic...'}
             className="query-input"
           />
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="btn btn-primary"
             disabled={loading}
           >
-            {loading ? '⏳ Searching...' : '🔍 Search'}
+            {loading ? 'Searching...' : 'Search'}
           </button>
         </form>
 
@@ -90,7 +83,6 @@ const TopicQuery = ({ meetingId }) => {
       {results && (
         <div className="results-section">
           {queryType === 'semantic' ? (
-            // Semantic search results
             <>
               <div className="answer-box">
                 <h4>Answer</h4>
@@ -115,7 +107,6 @@ const TopicQuery = ({ meetingId }) => {
               )}
             </>
           ) : (
-            // Topic search results
             <>
               <div className="search-info">
                 <p>Found {results.results_count} relevant segments</p>

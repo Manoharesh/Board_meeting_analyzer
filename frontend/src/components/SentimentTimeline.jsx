@@ -11,9 +11,11 @@ const SentimentTimeline = ({ transcript }) => {
         idx,
         speaker: entry.speaker,
         sentiment: entry.sentiment || 'neutral',
-        text: entry.text.substring(0, 50) + '...'
+        text: `${(entry.text || '').slice(0, 50)}...`
       }));
       setSentimentData(processed);
+    } else {
+      setSentimentData([]);
     }
   }, [transcript]);
 
@@ -44,6 +46,9 @@ const SentimentTimeline = ({ transcript }) => {
   };
 
   const sentimentPct = getSentimentPercentage();
+  const uniqueSpeakerCount = new Set(
+    sentimentData.map((item) => item.speaker).filter(Boolean)
+  ).size;
 
   if (sentimentData.length === 0) {
     return (
@@ -126,13 +131,7 @@ const SentimentTimeline = ({ transcript }) => {
             <span className="stat-label">Total Statements</span>
           </div>
           <div className="stat-card">
-            <span className="stat-value">{
-              sentimentData.reduce((acc, item) => {
-                const speakers = new Set();
-                if (item.speaker) speakers.add(item.speaker);
-                return speakers.size;
-              }, 0)
-            }</span>
+            <span className="stat-value">{uniqueSpeakerCount}</span>
             <span className="stat-label">Unique Speakers</span>
           </div>
           <div className="stat-card">
