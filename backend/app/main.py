@@ -1,8 +1,8 @@
-import sys
 import logging
-from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.config import config
 from app.api.meeting_routes import router as meeting_router
 from app.api.query_routes import router as query_router
 from app.api.voice_routes import router as voice_router
@@ -20,11 +20,14 @@ app = FastAPI(
     description="Intelligent board meeting transcription, analysis, and Q&A system"
 )
 
-# Add CORS middleware
+# Add CORS middleware.
+# When using "*", credentials must be disabled to satisfy browser CORS rules.
+cors_origins = [origin.strip() for origin in config.CORS_ORIGINS if origin.strip()] or ["*"]
+allow_all_origins = cors_origins == ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=not allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -1,14 +1,24 @@
 """API routes for querying meeting content."""
-from fastapi import APIRouter, HTTPException
 from typing import Optional
 import logging
 
-from app.memory.meeting_store import get_chunks, get_store
+from fastapi import APIRouter, Body, HTTPException
+from pydantic import BaseModel, Field
+
+from app.memory.meeting_store import get_chunks, get_meeting
 from app.ai.topic_query import query_by_topic, semantic_query
 from app.ai.llm_client import call_llm
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+class SemanticQueryRequest(BaseModel):
+    query: str = Field(min_length=1)
+
+
+class AskMeetingRequest(BaseModel):
+    question: str = Field(min_length=1)
 
 
 @router.get("/topic/{meeting_id}")
@@ -25,9 +35,10 @@ def topic_query_endpoint(meeting_id: str, topic: str) -> dict:
         List of relevant meeting segments
     """
     try:
+        if not get_meeting(meeting_id):
+            raise HTTPException(status_code=404, detail=f"Meeting {meeting_id} not found")
+
         chunks = get_chunks(meeting_id)
-        if not chunks:
-            raise HTTPException(status_code=404, detail="Meeting not found")
         
         results = query_by_topic(chunks, topic)
         
@@ -46,13 +57,19 @@ def topic_query_endpoint(meeting_id: str, topic: str) -> dict:
             ]
         }
         
-    except Exception as e:
-        logger.error(f"Error querying by topic: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Error querying by topic: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.post("/semantic/{meeting_id}")
-def semantic_query_endpoint(meeting_id: str, query: str) -> dict:
+def semantic_query_endpoint(
+    meeting_id: str,
+    payload: Optional[SemanticQueryRequest] = Body(default=None),
+    query: Optional[str] = None,
+) -> dict:
     """
     Perform semantic search on meeting content using natural language.
     Uses LLM to understand questions and provide answers.
@@ -65,16 +82,29 @@ def semantic_query_endpoint(meeting_id: str, query: str) -> dict:
         Answer with relevant segments from the meeting
     """
     try:
+        if not get_meeting(meeting_id):
+            raise HTTPException(status_code=404, detail=f"Meeting {meeting_id} not found")
+
+        query_value = (payload.query if payload else query or "").strip()
+        if not query_value:
+            raise HTTPException(status_code=400, detail="query is required")
+
         chunks = get_chunks(meeting_id)
         if not chunks:
-            raise HTTPException(status_code=404, detail="Meeting not found")
+            return {
+                "meeting_id": meeting_id,
+                "query": query_value,
+                "answer": "No transcript data available yet.",
+                "relevant_chunks": [],
+                "chunk_count": 0
+            }
         
         # Get semantic results
-        relevant_chunks, answer = semantic_query(chunks, query)
+        relevant_chunks, answer = semantic_query(chunks, query_value)
         
         return {
             "meeting_id": meeting_id,
-            "query": query,
+            "query": query_value,
             "answer": answer,
             "relevant_chunks": [
                 {
@@ -87,13 +117,19 @@ def semantic_query_endpoint(meeting_id: str, query: str) -> dict:
             "chunk_count": len(relevant_chunks)
         }
         
-    except Exception as e:
-        logger.error(f"Error in semantic query: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Error in semantic query: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.post("/ask/{meeting_id}")
-def ask_meeting_endpoint(meeting_id: str, question: str) -> dict:
+def ask_meeting_endpoint(
+    meeting_id: str,
+    payload: Optional[AskMeetingRequest] = Body(default=None),
+    question: Optional[str] = None,
+) -> dict:
     """
     Ask a question about the meeting using conversational AI.
     
@@ -105,11 +141,22 @@ def ask_meeting_endpoint(meeting_id: str, question: str) -> dict:
         AI-generated answer with supporting evidence
     """
     try:
-        store = get_store()
+        if not get_meeting(meeting_id):
+            raise HTTPException(status_code=404, detail=f"Meeting {meeting_id} not found")
+
+        question_value = (payload.question if payload else question or "").strip()
+        if not question_value:
+            raise HTTPException(status_code=400, detail="question is required")
+
         chunks = get_chunks(meeting_id)
         
         if not chunks:
-            raise HTTPException(status_code=404, detail="Meeting not found")
+            return {
+                "meeting_id": meeting_id,
+                "question": question_value,
+                "answer": "No transcript data available yet.",
+                "status": "no_data"
+            }
         
         # Build context from chunks
         context_text = "\n".join([
@@ -123,7 +170,7 @@ def ask_meeting_endpoint(meeting_id: str, question: str) -> dict:
 Meeting Transcript:
 {context_text}
 
-Question: {question}
+Question: {question_value}
 
 Provide a concise, factual answer based on the meeting transcript.
 """
@@ -138,14 +185,16 @@ Provide a concise, factual answer based on the meeting transcript.
         
         return {
             "meeting_id": meeting_id,
-            "question": question,
+            "question": question_value,
             "answer": answer,
             "status": "success"
         }
         
-    except Exception as e:
-        logger.error(f"Error answering question: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Error answering question: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.get("/speakers/{meeting_id}")
@@ -160,9 +209,16 @@ def get_speakers_endpoint(meeting_id: str) -> dict:
         List of unique speakers and their contribution count
     """
     try:
+        if not get_meeting(meeting_id):
+            raise HTTPException(status_code=404, detail=f"Meeting {meeting_id} not found")
+
         chunks = get_chunks(meeting_id)
         if not chunks:
-            raise HTTPException(status_code=404, detail="Meeting not found")
+            return {
+                "meeting_id": meeting_id,
+                "speaker_count": 0,
+                "speakers": []
+            }
         
         speaker_stats = {}
         for chunk in chunks:
@@ -190,6 +246,8 @@ def get_speakers_endpoint(meeting_id: str) -> dict:
             ]
         }
         
-    except Exception as e:
-        logger.error(f"Error getting speakers: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Error getting speakers: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
