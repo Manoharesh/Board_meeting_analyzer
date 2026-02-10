@@ -31,6 +31,17 @@ class Config:
     LLM_MODEL = os.getenv('LLM_MODEL', 'llama3')
     OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+    ORCHESTRATION_USE_LANGCHAIN = os.getenv('ORCHESTRATION_USE_LANGCHAIN', 'True').lower() == 'true'
+    N8N_WEBHOOK_URL = os.getenv('N8N_WEBHOOK_URL', '')
+    N8N_TIMEOUT_SECONDS = float(os.getenv('N8N_TIMEOUT_SECONDS', 2.5))
+    
+    # Timeout Configuration
+    LLM_TIMEOUT_SECONDS = float(os.getenv('LLM_TIMEOUT_SECONDS', 30.0))
+    TRANSCRIPTION_TIMEOUT_SECONDS = float(os.getenv('TRANSCRIPTION_TIMEOUT_SECONDS', 10.0))
+    
+    # Background Processing
+    BACKGROUND_WORKER_THREADS = int(os.getenv('BACKGROUND_WORKER_THREADS', 4))
+    ENABLE_ASYNC_PROCESSING = os.getenv('ENABLE_ASYNC_PROCESSING', 'True').lower() == 'true'
     
     # Speaker Configuration
     MIN_ENROLLMENT_DURATION = int(os.getenv('MIN_ENROLLMENT_DURATION', 10))  # seconds
@@ -67,6 +78,7 @@ class Config:
             'stt_engine': cls.STT_ENGINE,
             'llm_engine': cls.LLM_ENGINE,
             'llm_model': cls.LLM_MODEL,
+            'orchestration_langchain': cls.ORCHESTRATION_USE_LANGCHAIN,
             'sample_rate': cls.SAMPLE_RATE,
             'storage_path': cls.STORAGE_PATH
         }

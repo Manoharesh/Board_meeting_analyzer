@@ -10,6 +10,7 @@ class MeetingMetadata(BaseModel):
     end_time: Optional[datetime] = None
     participants: List[str] = []
     created_at: datetime = None
+    status: str = "active"  # active, completed, failed
 
     def __init__(self, **data):
         if data.get('created_at') is None:

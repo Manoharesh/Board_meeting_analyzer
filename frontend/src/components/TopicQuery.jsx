@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import '../styles/TopicQuery.css';
 import api from '../services/api';
+import AppButton from './AppButton';
 
 const TopicQuery = ({ meetingId }) => {
   const [query, setQuery] = useState('');
@@ -68,13 +69,13 @@ const TopicQuery = ({ meetingId }) => {
             placeholder={queryType === 'semantic' ? 'Ask a question about the meeting...' : 'Search for a topic...'}
             className="query-input"
           />
-          <button
+          <AppButton
             type="submit"
-            className="btn btn-primary"
+            className="btn-primary"
             disabled={loading}
           >
             {loading ? 'Searching...' : 'Search'}
-          </button>
+          </AppButton>
         </form>
 
         {error && <div className="error-message">{error}</div>}
@@ -145,7 +146,7 @@ const TopicQuery = ({ meetingId }) => {
         <h4>Quick Queries</h4>
         <div className="query-buttons">
           {['What were the key decisions?', 'Who spoke the most?', 'What was the sentiment?'].map((q, idx) => (
-            <button
+            <AppButton
               key={idx}
               className="quick-query-btn"
               onClick={() => {
@@ -154,7 +155,7 @@ const TopicQuery = ({ meetingId }) => {
               }}
             >
               {q}
-            </button>
+            </AppButton>
           ))}
         </div>
       </div>

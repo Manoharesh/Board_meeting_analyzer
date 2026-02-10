@@ -14,26 +14,28 @@
 
 .section-header {
   width: 100%;
-  padding: 1.25rem;
-  background: white;
+  border-radius: 0;
   border: none;
   border-bottom: 1px solid var(--border-color);
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  background: var(--bg-secondary);
   font-size: 1rem;
+  font-weight: 600;
 }
 
-.section-header:hover {
-  background: var(--bg-secondary);
+.section-header .blob1 {
+  display: none;
+}
+
+.section-header .inner {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: 0;
 }
 
 .section-header .icon {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
 }
 
 .section-header .title {
@@ -52,10 +54,9 @@
 
 .section-content {
   padding: 1.5rem;
-  background: white;
+  background: var(--bg-primary);
 }
 
-/* Summary */
 .summary-text {
   color: var(--text-primary);
   line-height: 1.7;
@@ -81,21 +82,19 @@
 }
 
 .key-points li {
-  padding: 0.5rem 0 0.5rem 1.5rem;
+  padding: 0.5rem 0 0.5rem 1.1rem;
   position: relative;
   color: var(--text-primary);
   line-height: 1.6;
 }
 
 .key-points li:before {
-  content: "✓";
+  content: "-";
   position: absolute;
   left: 0;
-  color: var(--success-color);
-  font-weight: bold;
+  color: var(--text-secondary);
 }
 
-/* Items List */
 .items-list {
   display: grid;
   gap: 1rem;
@@ -106,12 +105,12 @@
   background: var(--bg-secondary);
   border-radius: 0.5rem;
   border-left: 4px solid var(--border-color);
-  transition: all 0.2s;
+  transition: background-color 0.2s, box-shadow 0.2s;
 }
 
 .item:hover {
   box-shadow: var(--shadow-sm);
-  background: white;
+  background: var(--bg-tertiary);
 }
 
 .item-header {
@@ -137,10 +136,29 @@
   white-space: nowrap;
 }
 
-.priority-badge { background: #f3f4f6; color: #374151; }
-.action-item.priority-high .priority-badge { background: #fee2e2; color: #991b1b; }
-.action-item.priority-medium .priority-badge { background: #fef3c7; color: #92400e; }
-.action-item.priority-low .priority-badge { background: #dbeafe; color: #0c4a6e; }
+.priority-badge {
+  background: #242424;
+  color: #d0d0d0;
+  border: 1px solid #3e3e3e;
+}
+
+.action-item.priority-high .priority-badge {
+  background: #202020;
+  color: #c6c6c6;
+  border: 1px solid #393939;
+}
+
+.action-item.priority-medium .priority-badge {
+  background: #1e1e1e;
+  color: #b8b8b8;
+  border: 1px solid #343434;
+}
+
+.action-item.priority-low .priority-badge {
+  background: #1b1b1b;
+  color: #a7a7a7;
+  border: 1px solid #2f2f2f;
+}
 
 .status {
   padding: 0.25rem 0.75rem;
@@ -151,10 +169,29 @@
   white-space: nowrap;
 }
 
-.status-decided { background: #dcfce7; color: #166534; }
-.status-pending { background: #fef3c7; color: #92400e; }
-.status-rejected { background: #fee2e2; color: #991b1b; }
-.status-open { background: #dbeafe; color: #0c4a6e; }
+.status-decided {
+  background: #242424;
+  color: #d2d2d2;
+  border: 1px solid #3c3c3c;
+}
+
+.status-pending {
+  background: #1f1f1f;
+  color: #bebebe;
+  border: 1px solid #363636;
+}
+
+.status-rejected {
+  background: #1c1c1c;
+  color: #a8a8a8;
+  border: 1px solid #323232;
+}
+
+.status-open {
+  background: #212121;
+  color: #c8c8c8;
+  border: 1px solid #383838;
+}
 
 .item-meta,
 .item-details {
@@ -187,7 +224,6 @@
   color: var(--text-secondary);
 }
 
-/* Sentiment Grid */
 .sentiment-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -225,9 +261,17 @@
   font-size: 1.25rem;
 }
 
-.score.sentiment-positive { color: var(--positive-sentiment); }
-.score.sentiment-neutral { color: var(--neutral-sentiment); }
-.score.sentiment-negative { color: var(--negative-sentiment); }
+.score.sentiment-positive {
+  color: var(--positive-sentiment);
+}
+
+.score.sentiment-neutral {
+  color: var(--neutral-sentiment);
+}
+
+.score.sentiment-negative {
+  color: var(--negative-sentiment);
+}
 
 .sentiment-breakdown-mini {
   display: flex;
@@ -259,17 +303,16 @@
   font-weight: 600;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .item-header {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .item-title {
     flex: auto;
   }
-  
+
   .sentiment-grid {
     grid-template-columns: 1fr;
   }

@@ -7,12 +7,10 @@ import numpy as np
 from fastapi import APIRouter, Body, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
-from app.ai.action_items import extract_action_items
-from app.ai.decision_extractor import extract_decisions
-from app.ai.sentiment import get_sentiment_breakdown, track_speaker_sentiment
-from app.ai.summarizer import summarize
+from app.audio.audio_utils import decode_audio, is_silent, get_audio_duration
 from app.audio.diarization import detect_speaker, get_diarizer
 from app.audio.stream_handler import get_stream_handler
+from app.background_worker import submit_task
 from app.memory.meeting_store import (
     create_meeting,
     end_meeting,
@@ -23,7 +21,7 @@ from app.memory.meeting_store import (
     store_chunk,
 )
 from app.models.schemas import ActionItem, DecisionItem, MeetingAnalysis, TranscriptEntry
-from app.transcription.realtime_stt import transcribe_audio
+from app.orchestration import get_meeting_orchestrator
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -46,6 +44,29 @@ def _clean_participants(participants: Optional[List[str]]) -> List[str]:
     return [name.strip() for name in participants if name and name.strip()]
 
 
+def _meeting_context_metadata(meeting_id: str, meeting_data: Optional[dict]) -> dict:
+    metadata_payload = {"meeting_id": meeting_id}
+    if not isinstance(meeting_data, dict):
+        return metadata_payload
+
+    raw_metadata = meeting_data.get("metadata")
+    if raw_metadata is None:
+        return metadata_payload
+
+    meeting_name = getattr(raw_metadata, "meeting_name", None)
+    start_time = getattr(raw_metadata, "start_time", None)
+    participants = getattr(raw_metadata, "participants", None)
+
+    if meeting_name:
+        metadata_payload["meeting_name"] = meeting_name
+    if start_time is not None:
+        metadata_payload["start_time"] = start_time
+    if participants:
+        metadata_payload["participants"] = participants
+
+    return metadata_payload
+
+
 @router.post("/start")
 def start_meeting(
     payload: StartMeetingRequest = Body(...),
@@ -62,8 +83,9 @@ def start_meeting(
         meeting_id = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{safe_name}"
 
         metadata = create_meeting(meeting_id, meeting_name_value, participants_value)
-        get_stream_handler().start_recording()
-        get_diarizer().reset()
+        # Hardware-dependent recording/diarization disabled for recovery baseline
+        # get_stream_handler().start_recording(meeting_id)
+        # get_diarizer().reset()
 
         logger.info("Started meeting: %s", meeting_id)
         return {
@@ -88,7 +110,7 @@ def end_meeting_endpoint(meeting_id: str) -> dict:
         if not meeting_data:
             raise HTTPException(status_code=404, detail=f"Meeting {meeting_id} not found")
 
-        get_stream_handler().stop_recording()
+        # get_stream_handler().stop_recording(meeting_id)
         if not end_meeting(meeting_id):
             raise HTTPException(status_code=500, detail=f"Failed to end meeting {meeting_id}")
 
@@ -110,63 +132,129 @@ def end_meeting_endpoint(meeting_id: str) -> dict:
 async def add_audio_chunk(meeting_id: str, chunk: UploadFile = File(...)) -> dict:
     """Process and store an uploaded audio chunk."""
     try:
-        meeting = get_meeting(meeting_id)
-        if not meeting:
-            raise HTTPException(status_code=404, detail=f"Meeting {meeting_id} not found")
-
         raw_chunk = await chunk.read()
-        if not raw_chunk:
-            raise HTTPException(status_code=400, detail="Audio chunk is empty")
+        chunk_size = len(raw_chunk)
+        
+        if chunk_size == 0:
+            logger.warning("Received empty audio chunk for meeting %s", meeting_id)
+            return {
+                "status": "error",
+                "message": "Empty audio payload",
+                "meeting_id": meeting_id,
+                "stored": False,
+            }
 
-        audio_data = np.frombuffer(raw_chunk, dtype=np.int16).astype(np.float32) / 32768.0
+        # Use robust decoder instead of direct buffer conversion
+        audio_data = decode_audio(raw_chunk)
+        
         if audio_data.size == 0:
-            raise HTTPException(status_code=400, detail="Audio chunk contains no valid samples")
+            logger.error("Failed to decode audio chunk for meeting %s (size: %d bytes)", meeting_id, chunk_size)
+            return {
+                "status": "error",
+                "message": "Audio decoding failed",
+                "meeting_id": meeting_id,
+                "stored": False,
+            }
 
+        # Check for silence (Root Mean Square check)
+        if is_silent(audio_data):
+            # Log with high detail to help debug sensitivity issues
+            rms = np.sqrt(np.mean(np.square(audio_data)))
+            logger.info("Ignoring silent chunk (RMS: %.6f) for meeting %s (bytes: %d)", 
+                        rms, meeting_id, chunk_size)
+            return {
+                "status": "ignored",
+                "message": "Silence detected",
+                "meeting_id": meeting_id,
+                "stored": False,
+            }
+
+        # Quick speaker detection (fast, non-blocking)
         speaker_name, confidence = detect_speaker(audio_data)
-        success, transcription = transcribe_audio(audio_data)
-
-        if not success or not transcription:
-            logger.warning("Failed to transcribe chunk for meeting %s", meeting_id)
-            transcription = "[Transcription failed]"
-
-        sentiment = track_speaker_sentiment(speaker_name, transcription)
+        duration = get_audio_duration(audio_data)
+        
+        # Submit transcription and sentiment analysis to background worker
+        task_id = f"{meeting_id}_chunk_{len(get_chunks(meeting_id))}"
+        submit_task(
+            task_id=task_id,
+            func=_process_audio_background,
+            meeting_id=meeting_id,
+            audio_data=audio_data,
+            speaker_name=speaker_name,
+        )
+        
+        # Store minimal chunk data immediately
         chunk_data = {
             "speaker": speaker_name,
             "speaker_name": speaker_name,
-            "text": transcription,
+            "text": "[Processing...]",
             "timestamp": len(get_chunks(meeting_id)),
-            "duration": len(audio_data) / 16000,
-            "sentiment": sentiment.get("sentiment"),
-            "emotion": sentiment.get("emotion"),
-            "confidence": sentiment.get("confidence"),
-        }
-
-        store_chunk(meeting_id, chunk_data)
-
-        transcript_entry = TranscriptEntry(
-            speaker_name=speaker_name,
-            speaker_id=speaker_name,
-            text=transcription,
-            timestamp=chunk_data["timestamp"],
-            duration=chunk_data["duration"],
-            sentiment=sentiment.get("sentiment"),
-        )
-        get_store().store_transcript_entry(meeting_id, transcript_entry)
-
-        logger.info("Processed audio chunk for %s (%s)", meeting_id, speaker_name)
-        return {
-            "status": "chunk processed",
-            "speaker": speaker_name,
+            "duration": duration,
+            "sentiment": None,
+            "emotion": None,
             "confidence": confidence,
-            "transcription": transcription[:100] + "..." if len(transcription) > 100 else transcription,
-            "sentiment": sentiment.get("sentiment"),
-            "emotion": sentiment.get("emotion"),
+            "byte_size": chunk_size
         }
-    except HTTPException:
-        raise
+        stored = store_chunk(meeting_id, chunk_data)
+        
+        logger.info("Accepted audio chunk: %s, bytes: %d, samples: %d, speaker: %s, duration: %.2fs", 
+                    meeting_id, chunk_size, len(audio_data), speaker_name, duration)
+        
+        return {
+            "status": "audio detected",
+            "meeting_id": meeting_id,
+            "stored": stored,
+            "speaker": speaker_name if stored else None,
+            "processing": "background",
+            "duration": duration,
+            "bytes_received": chunk_size
+        }
     except Exception as exc:
         logger.error("Error processing audio chunk: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc))
+        return {
+            "status": "chunk acknowledged",
+            "meeting_id": meeting_id,
+            "stored": False,
+        }
+
+
+def _process_audio_background(
+    meeting_id: str,
+    audio_data: np.ndarray,
+    speaker_name: str,
+) -> None:
+    """Background task to process audio chunk."""
+    try:
+        orchestration_result = get_meeting_orchestrator().process_audio_chunk(audio_data, speaker_name)
+        transcription = str(orchestration_result.get("transcription") or "")
+        sentiment = orchestration_result.get("sentiment") or {}
+        
+        # Update the chunk with transcription results
+        chunks = get_chunks(meeting_id)
+        if chunks:
+            # Find and update the most recent chunk for this speaker
+            for i in range(len(chunks) - 1, -1, -1):
+                if chunks[i].get("speaker") == speaker_name and chunks[i].get("text") == "[Processing...]":
+                    chunks[i]["text"] = transcription or "[No speech detected]"
+                    chunks[i]["sentiment"] = sentiment.get("sentiment")
+                    chunks[i]["emotion"] = sentiment.get("emotion")
+                    chunks[i]["confidence"] = sentiment.get("confidence")
+                    
+                    # Store transcript entry
+                    transcript_entry = TranscriptEntry(
+                        speaker_name=speaker_name,
+                        speaker_id=speaker_name,
+                        text=transcription,
+                        timestamp=chunks[i]["timestamp"],
+                        duration=chunks[i]["duration"],
+                        sentiment=sentiment.get("sentiment"),
+                    )
+                    get_store().store_transcript_entry(meeting_id, transcript_entry)
+                    break
+                    
+        logger.info("Completed background processing for %s", meeting_id)
+    except Exception as exc:
+        logger.error("Background processing error: %s", exc)
 
 
 @router.post("/chunk")
@@ -199,7 +287,7 @@ def add_chunk(
         }
         store_chunk(meeting_id_value, chunk_data)
 
-        sentiment = track_speaker_sentiment(speaker_value, text_value)
+        sentiment = get_meeting_orchestrator().process_text_chunk(speaker_value, text_value)
         transcript_entry = TranscriptEntry(
             speaker_name=speaker_value,
             speaker_id=speaker_value,
@@ -228,46 +316,65 @@ def add_chunk(
 def analyze_meeting(meeting_id: str) -> dict:
     """Generate summary, decisions, action items, and sentiment metrics."""
     try:
-        if not get_meeting(meeting_id):
+        meeting_data = get_meeting(meeting_id)
+        if not meeting_data:
             raise HTTPException(status_code=404, detail=f"Meeting {meeting_id} not found")
 
         chunks = get_chunks(meeting_id)
+        orchestration_payload = get_meeting_orchestrator().analyze_meeting(
+            meeting_id=meeting_id,
+            chunks=chunks,
+            full_text=get_full_text(meeting_id),
+            metadata=_meeting_context_metadata(meeting_id, meeting_data),
+        )
+
         if not chunks:
+            # Check for no_audio status for a better summary
+            metadata_raw = meeting_data.get("metadata")
+            status = getattr(metadata_raw, "status", None) if metadata_raw else None
+            
+            summary = orchestration_payload.get("summary") or ""
+            if status == "no_audio":
+                summary = "This meeting ended before any speech was detected, so no summary could be generated."
+            
             return {
                 "status": "no data",
                 "meeting_id": meeting_id,
-                "summary": "",
-                "key_points": [],
+                "summary": summary,
+                "key_points": [
+                    str(point)
+                    for point in orchestration_payload.get("key_points", [])
+                    if str(point).strip()
+                ],
                 "decisions": [],
                 "action_items": [],
-                "sentiment_breakdown": {},
-                "speakers": [],
+                "sentiment_breakdown": orchestration_payload.get("sentiment_breakdown", {}),
+                "speakers": [str(speaker) for speaker in orchestration_payload.get("speakers", [])],
             }
 
-        summary_result = summarize(chunks)
-        summary = ""
-        key_points: List[str] = []
-        if isinstance(summary_result, dict):
-            summary = str(summary_result.get("summary") or "")
-            raw_key_points = summary_result.get("key_points") or []
-            if isinstance(raw_key_points, list):
-                key_points = [str(point) for point in raw_key_points if point]
-        elif summary_result:
-            summary = str(summary_result)
-
-        full_text = get_full_text(meeting_id)
-        decisions = [DecisionItem(**item) for item in extract_decisions(full_text)]
-        action_items = [ActionItem(**item) for item in extract_action_items(full_text)]
-        sentiment_data = get_sentiment_breakdown()
-        speakers = sorted({chunk.get("speaker", "Unknown") for chunk in chunks})
+        decisions = [
+            DecisionItem(**item)
+            for item in orchestration_payload.get("decisions", [])
+            if isinstance(item, dict)
+        ]
+        action_items = [
+            ActionItem(**item)
+            for item in orchestration_payload.get("action_items", [])
+            if isinstance(item, dict)
+        ]
+        speakers = [str(speaker) for speaker in orchestration_payload.get("speakers", [])]
 
         analysis = MeetingAnalysis(
             meeting_id=meeting_id,
-            summary=summary,
-            key_points=key_points,
+            summary=str(orchestration_payload.get("summary") or ""),
+            key_points=[
+                str(point)
+                for point in orchestration_payload.get("key_points", [])
+                if str(point).strip()
+            ],
             decisions=decisions,
             action_items=action_items,
-            sentiment_breakdown=sentiment_data,
+            sentiment_breakdown=orchestration_payload.get("sentiment_breakdown", {}),
             speakers=speakers,
         )
         get_store().store_analysis(meeting_id, analysis)
@@ -288,10 +395,32 @@ def analyze_meeting(meeting_id: str) -> dict:
 def get_transcript(meeting_id: str) -> dict:
     """Get a meeting transcript in UI-friendly format."""
     try:
-        if not get_meeting(meeting_id):
-            raise HTTPException(status_code=404, detail=f"Meeting {meeting_id} not found")
-
         chunks = get_chunks(meeting_id)
+        if not chunks:
+            # Check if meeting was marked as no_audio
+            meeting_data = get_meeting(meeting_id)
+            metadata = meeting_data.get("metadata") if meeting_data else None
+            
+            if metadata and getattr(metadata, "status", None) == "no_audio":
+                return {
+                    "meeting_id": meeting_id,
+                    "transcription_status": "no_audio",
+                    "transcript": [{
+                        "speaker": "System",
+                        "text": "No audio was detected in this meeting.",
+                        "timestamp": 0,
+                        "sentiment": "neutral"
+                    }],
+                    "entry_count": 1,
+                }
+            
+            return {
+                "meeting_id": meeting_id,
+                "transcription_status": "processing",
+                "transcript": [],
+                "entry_count": 0,
+            }
+
         transcript = [
             {
                 "speaker": chunk.get("speaker", "Unknown"),
@@ -304,14 +433,18 @@ def get_transcript(meeting_id: str) -> dict:
 
         return {
             "meeting_id": meeting_id,
+            "transcription_status": "ready",
             "transcript": transcript,
             "entry_count": len(transcript),
         }
-    except HTTPException:
-        raise
     except Exception as exc:
         logger.error("Error retrieving transcript: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc))
+        return {
+            "meeting_id": meeting_id,
+            "status": "error",
+            "transcript": [],
+            "entry_count": 0,
+        }
 
 
 @router.get("/meetings/list/all")
@@ -349,6 +482,7 @@ def get_meeting_data(meeting_id: str) -> dict:
             "has_analysis": analysis is not None,
             "chunk_count": chunk_count,
             "analysis": analysis.model_dump() if analysis else None,
+            "transcription_status": getattr(metadata, "status", "unknown") if metadata else "unknown",
         }
     except HTTPException:
         raise

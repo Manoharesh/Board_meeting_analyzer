@@ -13,7 +13,7 @@
   justify-content: space-between;
   align-items: center;
   padding-bottom: 1rem;
-  border-bottom: 2px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .transcript-header h3 {
@@ -28,6 +28,7 @@
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-secondary);
+  border: 1px solid var(--border-color);
 }
 
 .transcript-entries {
@@ -44,17 +45,17 @@
 }
 
 .transcript-entries::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: #1a1a1a;
   border-radius: 4px;
 }
 
 .transcript-entries::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: #3a3a3a;
   border-radius: 4px;
 }
 
 .transcript-entries::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: #4a4a4a;
 }
 
 .entry {
@@ -62,22 +63,22 @@
   background: var(--bg-secondary);
   border-left: 4px solid var(--border-color);
   border-radius: 0.5rem;
-  transition: all 0.2s;
+  transition: background-color 0.2s, box-shadow 0.2s;
 }
 
 .entry:hover {
-  background: white;
+  background: var(--bg-tertiary);
   box-shadow: var(--shadow-sm);
 }
 
 .entry.sentiment-positive {
   border-left-color: var(--positive-sentiment);
-  background: #f0fdf4;
+  background: #242424;
 }
 
 .entry.sentiment-negative {
   border-left-color: var(--negative-sentiment);
-  background: #fef2f2;
+  background: #1c1c1c;
 }
 
 .entry.sentiment-neutral {
@@ -95,7 +96,7 @@
 
 .speaker {
   font-weight: 700;
-  color: var(--primary-color);
+  color: var(--text-primary);
   font-size: 0.95rem;
 }
 
@@ -114,18 +115,21 @@
 }
 
 .sentiment-badge.sentiment-positive {
-  background-color: #dcfce7;
-  color: #166534;
+  background-color: #252525;
+  color: #d2d2d2;
+  border: 1px solid #3d3d3d;
 }
 
 .sentiment-badge.sentiment-neutral {
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: #1f1f1f;
+  color: #b8b8b8;
+  border: 1px solid var(--border-color);
 }
 
 .sentiment-badge.sentiment-negative {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: #1b1b1b;
+  color: #9c9c9c;
+  border: 1px solid #333;
 }
 
 .entry-text {
@@ -141,6 +145,9 @@
   align-items: center;
   height: 300px;
   color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
 }
 
 .empty-state p {
@@ -149,19 +156,18 @@
 
 .empty-state .hint {
   font-size: 0.875rem;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .entry-header {
     gap: 0.5rem;
   }
-  
+
   .speaker {
     font-size: 0.85rem;
   }
-  
+
   .entry-text {
     font-size: 0.9rem;
   }

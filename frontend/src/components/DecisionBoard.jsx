@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import '../styles/DecisionBoard.css';
+import AppButton from './AppButton';
 
 const DecisionBoard = ({ analysis }) => {
   const [expandedSection, setExpandedSection] = useState('summary');
@@ -15,14 +16,14 @@ const DecisionBoard = ({ analysis }) => {
   return (
     <div className="decision-board">
       <section className="board-section">
-        <button 
+        <AppButton 
           className="section-header"
           onClick={() => toggleSection('summary')}
         >
           <span className="icon">📝</span>
           <span className="title">Meeting Summary</span>
           <span className={`toggle ${expandedSection === 'summary' ? 'open' : ''}`}>▼</span>
-        </button>
+        </AppButton>
         
         {expandedSection === 'summary' && (
           <div className="section-content">
@@ -43,14 +44,14 @@ const DecisionBoard = ({ analysis }) => {
       </section>
 
       <section className="board-section">
-        <button 
+        <AppButton 
           className="section-header"
           onClick={() => toggleSection('decisions')}
         >
           <span className="icon">✅</span>
           <span className="title">Decisions ({analysis.decisions?.length || 0})</span>
           <span className={`toggle ${expandedSection === 'decisions' ? 'open' : ''}`}>▼</span>
-        </button>
+        </AppButton>
         
         {expandedSection === 'decisions' && (
           <div className="section-content">
@@ -81,14 +82,14 @@ const DecisionBoard = ({ analysis }) => {
       </section>
 
       <section className="board-section">
-        <button 
+        <AppButton 
           className="section-header"
           onClick={() => toggleSection('actions')}
         >
           <span className="icon">🎯</span>
           <span className="title">Action Items ({analysis.action_items?.length || 0})</span>
           <span className={`toggle ${expandedSection === 'actions' ? 'open' : ''}`}>▼</span>
-        </button>
+        </AppButton>
         
         {expandedSection === 'actions' && (
           <div className="section-content">
@@ -125,14 +126,14 @@ const DecisionBoard = ({ analysis }) => {
       </section>
 
       <section className="board-section">
-        <button 
+        <AppButton 
           className="section-header"
           onClick={() => toggleSection('sentiment')}
         >
           <span className="icon">😊</span>
           <span className="title">Sentiment Analysis</span>
           <span className={`toggle ${expandedSection === 'sentiment' ? 'open' : ''}`}>▼</span>
-        </button>
+        </AppButton>
         
         {expandedSection === 'sentiment' && (
           <div className="section-content">
@@ -180,3 +181,4 @@ const DecisionBoard = ({ analysis }) => {
 };
 
 export default DecisionBoard;
+

@@ -61,7 +61,17 @@ class MeetingStore:
             metadata = self.meeting_metadata[meeting_id]
             metadata.end_time = datetime.now()
             
-            logger.info(f"Ended meeting: {meeting_id}")
+            # Calculate duration and check for audio chunks
+            duration = (metadata.end_time - metadata.start_time).total_seconds()
+            chunk_count = len(self.meetings[meeting_id].get('chunks', []))
+            
+            if duration < 10 or chunk_count == 0:
+                metadata.status = "no_audio"
+                logger.info(f"Meeting {meeting_id} marked as no_audio (duration: {duration:.1f}s, chunks: {chunk_count})")
+            else:
+                metadata.status = "completed"
+            
+            logger.info(f"Ended meeting: {meeting_id} with status: {metadata.status}")
             return True
             
         except Exception as e:

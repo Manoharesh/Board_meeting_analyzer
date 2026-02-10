@@ -76,8 +76,8 @@ class MeetingAPIClient {
     });
   }
 
-  async getMeeting(meetingId) {
-    return request(`/meeting/${meetingId}`);
+  async getMeeting(meetingId, requestOptions = {}) {
+    return request(`/meeting/${meetingId}`, requestOptions);
   }
 
   async listMeetings() {
@@ -118,19 +118,21 @@ class MeetingAPIClient {
     return request(`/query/topic/${meetingId}?topic=${encodeURIComponent(topic)}`);
   }
 
-  async semanticQuery(meetingId, query) {
+  async semanticQuery(meetingId, query, requestOptions = {}) {
     return request(`/query/semantic/${meetingId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query })
+      body: JSON.stringify({ query }),
+      ...requestOptions
     });
   }
 
-  async askMeeting(meetingId, question) {
+  async askMeeting(meetingId, question, requestOptions = {}) {
     return request(`/query/ask/${meetingId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question })
+      body: JSON.stringify({ question }),
+      ...requestOptions
     });
   }
 

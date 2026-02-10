@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import '../styles/Dashboard.css';
+import AppButton from '../components/AppButton';
 
 const parseParticipants = (participants) =>
   participants
@@ -39,12 +40,12 @@ const Dashboard = ({ meetings, onStartMeeting, onSelectMeeting }) => {
         <p>Intelligent transcription, analysis, and Q&A for your board meetings</p>
 
         {!showNewMeetingForm ? (
-          <button
-            className="btn btn-primary"
+          <AppButton
+            className="btn-primary"
             onClick={() => setShowNewMeetingForm(true)}
           >
             Start New Meeting
-          </button>
+          </AppButton>
         ) : (
           <form className="new-meeting-form" onSubmit={handleStartMeeting}>
             <div className="form-group">
@@ -69,16 +70,16 @@ const Dashboard = ({ meetings, onStartMeeting, onSelectMeeting }) => {
             </div>
 
             <div className="form-actions">
-              <button type="submit" className="btn btn-primary">
+              <AppButton type="submit" className="btn-primary">
                 Start Recording
-              </button>
-              <button
+              </AppButton>
+              <AppButton
                 type="button"
-                className="btn btn-secondary"
+                className="btn-secondary"
                 onClick={() => setShowNewMeetingForm(false)}
               >
                 Cancel
-              </button>
+              </AppButton>
             </div>
           </form>
         )}
@@ -125,12 +126,12 @@ const Dashboard = ({ meetings, onStartMeeting, onSelectMeeting }) => {
                     )}
                   </div>
 
-                  <button
-                    className="btn btn-secondary"
+                  <AppButton
+                    className="btn-secondary"
                     onClick={() => onSelectMeeting(meeting)}
                   >
                     View Details
-                  </button>
+                  </AppButton>
                 </div>
               );
             })}
@@ -140,47 +141,6 @@ const Dashboard = ({ meetings, onStartMeeting, onSelectMeeting }) => {
             <p>No meetings yet. Start one to begin.</p>
           </div>
         )}
-      </section>
-
-      <section className="features-section">
-        <h3>Features</h3>
-        <div className="features-grid">
-          <div className="feature">
-            <div className="feature-icon">TR</div>
-            <h4>Real-time Transcription</h4>
-            <p>Automatic speech-to-text conversion with speaker identification</p>
-          </div>
-
-          <div className="feature">
-            <div className="feature-icon">SP</div>
-            <h4>Speaker Enrollment</h4>
-            <p>Register voices to automatically identify speakers by name</p>
-          </div>
-
-          <div className="feature">
-            <div className="feature-icon">SE</div>
-            <h4>Sentiment Analysis</h4>
-            <p>Track sentiment and emotion across all speakers</p>
-          </div>
-
-          <div className="feature">
-            <div className="feature-icon">SU</div>
-            <h4>Smart Summary</h4>
-            <p>AI-generated summaries and key points extraction</p>
-          </div>
-
-          <div className="feature">
-            <div className="feature-icon">AI</div>
-            <h4>Action Items</h4>
-            <p>Automatic extraction of decisions and action items</p>
-          </div>
-
-          <div className="feature">
-            <div className="feature-icon">QA</div>
-            <h4>Meeting Q&A</h4>
-            <p>Ask questions about the meeting content</p>
-          </div>
-        </div>
       </section>
     </div>
   );

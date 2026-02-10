@@ -5,7 +5,6 @@
   gap: 2rem;
 }
 
-/* Summary */
 .sentiment-summary {
   background: var(--bg-secondary);
   padding: 1.5rem;
@@ -38,7 +37,7 @@
 .bar-background {
   width: 100%;
   height: 32px;
-  background: white;
+  background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   overflow: hidden;
@@ -52,25 +51,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #f0f0f0;
   font-weight: 600;
   font-size: 0.75rem;
   transition: width 0.3s ease;
   min-width: 2px;
 }
 
-.bar-fill.positive { background: linear-gradient(90deg, #10b981, #34d399); }
-.bar-fill.neutral { background: linear-gradient(90deg, #6b7280, #9ca3af); }
-.bar-fill.negative { background: linear-gradient(90deg, #ef4444, #f87171); }
+.bar-fill.positive {
+  background: #595959;
+}
+
+.bar-fill.neutral {
+  background: #4a4a4a;
+}
+
+.bar-fill.negative {
+  background: #353535;
+}
 
 .bar-fill span {
   margin: 0 auto;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Timeline */
 .timeline {
-  background: white;
+  background: var(--bg-primary);
   padding: 1.5rem;
   border-radius: 0.75rem;
   border: 1px solid var(--border-color);
@@ -95,16 +100,16 @@
 }
 
 .timeline-items::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: #1a1a1a;
 }
 
 .timeline-items::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: #3a3a3a;
   border-radius: 4px;
 }
 
 .timeline-items::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: #4a4a4a;
 }
 
 .timeline-item {
@@ -113,18 +118,18 @@
   padding: 1rem;
   border-radius: 0.5rem;
   background: var(--bg-secondary);
-  transition: all 0.2s;
+  transition: background-color 0.2s, box-shadow 0.2s;
   border-left: 4px solid transparent;
 }
 
 .timeline-item:hover {
-  background: white;
+  background: var(--bg-tertiary);
   box-shadow: var(--shadow-sm);
 }
 
 .timeline-item.sentiment-positive {
   border-left-color: var(--positive-sentiment);
-  background: #f0fdf4;
+  background: #242424;
 }
 
 .timeline-item.sentiment-neutral {
@@ -134,7 +139,7 @@
 
 .timeline-item.sentiment-negative {
   border-left-color: var(--negative-sentiment);
-  background: #fef2f2;
+  background: #1d1d1d;
 }
 
 .timeline-marker {
@@ -143,8 +148,9 @@
   border-radius: 50%;
   margin-top: 2px;
   flex-shrink: 0;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8);
-  border: 2px solid white;
+  border: 2px solid #d2d2d2;
+  box-shadow: 0 0 0 3px #1a1a1a;
+  filter: grayscale(1) brightness(0.7);
 }
 
 .timeline-content {
@@ -153,7 +159,7 @@
 
 .speaker {
   font-weight: 700;
-  color: var(--primary-color);
+  color: var(--text-primary);
   font-size: 0.95rem;
   margin-bottom: 0.25rem;
 }
@@ -177,26 +183,25 @@
   border-radius: 0.25rem;
   display: inline-block;
   width: fit-content;
-}
-
-.sentiment-label {
   background: var(--bg-secondary);
   color: var(--text-secondary);
+  border: 1px solid var(--border-color);
 }
 
 .sentiment-positive .sentiment-label {
-  background: #dcfce7;
-  color: #166534;
+  background: #252525;
+  color: #d2d2d2;
+  border: 1px solid #3d3d3d;
 }
 
 .sentiment-negative .sentiment-label {
-  background: #fee2e2;
-  color: #991b1b;
+  background: #1b1b1b;
+  color: #a0a0a0;
+  border: 1px solid #333;
 }
 
-/* Statistics */
 .sentiment-stats {
-  background: white;
+  background: var(--bg-primary);
   padding: 1.5rem;
   border-radius: 0.75rem;
   border: 1px solid var(--border-color);
@@ -226,11 +231,16 @@
   font-size: 1.875rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
-  color: var(--primary-color);
+  color: var(--text-primary);
 }
 
-.stat-value.positive { color: var(--positive-sentiment); }
-.stat-value.negative { color: var(--negative-sentiment); }
+.stat-value.positive {
+  color: var(--positive-sentiment);
+}
+
+.stat-value.negative {
+  color: var(--negative-sentiment);
+}
 
 .stat-label {
   display: block;
@@ -238,20 +248,19 @@
   color: var(--text-secondary);
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .timeline-items {
     max-height: 400px;
   }
-  
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .stat-card {
     padding: 1rem;
   }
-  
+
   .stat-value {
     font-size: 1.5rem;
   }
