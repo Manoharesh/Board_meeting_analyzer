@@ -1,9 +1,8 @@
-<<<<<<< HEAD
-# BoardMemory AI
+# MeetMind
 
 ## 1. Project Title
 
-BoardMemory AI
+MeetMind
 Prototype codename in this repo: **AI Board Meeting Analyzer**
 
 ## 2. One-line Tagline
@@ -12,7 +11,7 @@ Turn meetings from fleeting conversations into durable, queryable organizational
 
 ## 3. Vision
 
-BoardMemory AI is building an autonomous meeting intelligence system that joins meetings, listens in real time, converts speech into structured knowledge, and makes that knowledge searchable long after the call ends.
+MeetMind is building an autonomous meeting intelligence system that joins meetings, listens in real time, converts speech into structured knowledge, and makes that knowledge searchable long after the call ends.
 
 The product vision is not "better notes."
 It is a memory layer for teams: decisions, commitments, context, and rationale captured as institutional knowledge.
@@ -62,7 +61,7 @@ The core gap: no system converts live conversation into durable, structured, and
 
 ## 6. Our Solution
 
-BoardMemory AI creates an end-to-end meeting intelligence pipeline:
+MeetMind creates an end-to-end meeting intelligence pipeline:
 
 - Capture live meeting audio
 - Transcribe continuously
@@ -269,14 +268,14 @@ Expansion opportunities:
 ```bash
 =======
 1. Project Title
-BoardMemory AI
+MeetMind
 Prototype codename in this repo: AI Board Meeting Analyzer
 
 2. One-line Tagline
 Turn meetings from fleeting conversations into durable, queryable organizational memory. 🧠
 
 3. Vision
-BoardMemory AI is building an autonomous meeting intelligence system that joins meetings, listens in real time, converts speech into structured knowledge, and makes that knowledge searchable long after the call ends.
+MeetMind is building an autonomous meeting intelligence system that joins meetings, listens in real time, converts speech into structured knowledge, and makes that knowledge searchable long after the call ends.
 
 The product vision is not “better notes.”
 It is a memory layer for teams: decisions, commitments, context, and rationale captured as institutional knowledge.
@@ -319,7 +318,7 @@ Search is often keyword-only and weak on intent, ownership, and rationale.
 The core gap: no system converts live conversation into durable, structured, and retrievable organizational memory.
 
 6. Our Solution
-BoardMemory AI creates an end-to-end meeting intelligence pipeline:
+MeetMind creates an end-to-end meeting intelligence pipeline:
 
 Capture live meeting audio
 Transcribe continuously
@@ -560,7 +559,7 @@ python run_test_meeting.py
 python test_api.py
 19. Long-Term Vision
 >>>>>>> 6981941b4729cc6026eadc6fc6aa88445b2746eb
-BoardMemory AI becomes the intelligence substrate for organizational conversations.
+MeetMind becomes the intelligence substrate for organizational conversations.
 
 Every meeting should create durable, trustworthy memory:
 
